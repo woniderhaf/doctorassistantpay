@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { parseNumber } from '@/core/parseNumber';
 import { appStore } from '@/store/appStoreSingleton';
+import { DataSection } from '@/components/settings/DataSection';
 
 /** Порт SettingsView (без секций уведомлений — web v1): ставка + правила округления + данные. */
 export function SettingsPage(): React.JSX.Element {
@@ -53,13 +54,7 @@ export function SettingsPage(): React.JSX.Element {
         </p>
       </section>
 
-      <section className="rounded-card bg-white p-4 shadow-sm">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-gray-400">Данные</h2>
-        <p className="mt-2 text-sm text-gray-500">
-          Данные хранятся только в этом браузере, без аккаунта и сервера. На iPhone в обычном окне Safari
-          Safari может очистить их после длительного отсутствия — держите резервную копию.
-        </p>
-      </section>
+      <DataSection />
     </div>
   );
 }
