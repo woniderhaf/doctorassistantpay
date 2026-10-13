@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { addMonths, monthStart } from '@/core/monthKey';
 import { formatMonthYear } from '@/format/intl';
 import { isSameDay, monthKeyOf, startOfDay, toDateInputValue } from '@/core/dateHelpers';
+import type { MonthKey } from '@/core/types';
 import { ChevronLeftIcon, ChevronRightIcon } from '../ui/icons';
 
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -18,12 +19,16 @@ interface MonthCalendarGridProps {
  * синяя точка плановой смены, кольцо «сегодня», залитый круг выбранного дня.
  */
 export function MonthCalendarGrid({ selectedDate, onSelect, hasEntries, hasPlannedShift }: MonthCalendarGridProps): React.JSX.Element {
-  const [displayed, setDisplayed] = useState(() => monthKeyOf(selectedDate));
-
-  // как onChange(selectedDate) в SwiftUI: выбор дня вне месяца листает месяцы
-  const selectedKey = monthKeyOf(selectedDate);
-  const isSameMonthShown = displayed.year === selectedKey.year && displayed.month === selectedKey.month;
-  if (!isSameMonthShown) setDisplayed(selectedKey);
+  // syncFrom помечает, от какого selectedDate уже синхронизировались: перелистывание
+  // стрелками само по себе не должно откатываться (в iOS это onChange(selectedDate),
+  // а не «на каждом рендере»).
+  const [view, setView] = useState(() => ({ month: monthKeyOf(selectedDate), syncFrom: selectedDate }));
+  if (view.syncFrom !== selectedDate) {
+    setView({ month: monthKeyOf(selectedDate), syncFrom: selectedDate });
+  }
+  const displayed = view.month;
+  const setDisplayed = (next: MonthKey | ((prev: MonthKey) => MonthKey)) =>
+    setView(v => ({ month: typeof next === 'function' ? next(v.month) : next, syncFrom: selectedDate }));
 
   const firstOfMonth = monthStart(displayed);
   const daysInMonth = new Date(displayed.year, displayed.month, 0).getDate();
