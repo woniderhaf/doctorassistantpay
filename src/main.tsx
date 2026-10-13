@@ -5,6 +5,12 @@ import { App } from './App';
 import { appStore } from './store/appStoreSingleton';
 import './styles/app.css';
 
+/** '/' локально и на хосте в корне; '/<repo>' на GitHub Pages (base из vite). */
+function routerBasename(): string {
+  const base = import.meta.env.BASE_URL;
+  return base.length > 1 ? base.replace(/\/+$/, '') : '/';
+}
+
 async function bootstrap(): Promise<void> {
   // запрашиваем персистентность хранилища (Safari ITP, не-standalone вкладки)
   void navigator.storage?.persist?.();
@@ -12,7 +18,7 @@ async function bootstrap(): Promise<void> {
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <BrowserRouter>
+      <BrowserRouter basename={routerBasename()}>
         <App />
       </BrowserRouter>
     </StrictMode>
