@@ -18,6 +18,7 @@ function makeShift(patch: Partial<PlannedShift> = {}): PlannedShift {
     status: 'planned',
     actualStartTime: null,
     note: null,
+    surgeries: [],
     ...patch
   };
 }
@@ -48,6 +49,11 @@ describe('PlannedShift', () => {
   it('isDue: активная смена → false (уже подтверждена)', () => {
     const s = makeShift({ status: 'active' });
     expect(isDue(s, s.startTime + MIN)).toBe(false);
+  });
+
+  it('estimatedPay включает операции: 8 ч × 400 + 1500 = 4700', () => {
+    const s = makeShift({ surgeries: [{ name: 'имплантат', price: 1500 }] });
+    expect(estimatedPay(s)).toBeCloseTo(4700, 4);
   });
 });
 

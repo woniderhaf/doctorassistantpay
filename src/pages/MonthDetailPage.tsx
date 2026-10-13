@@ -3,11 +3,11 @@ import { Link, Navigate, useParams } from 'react-router';
 import { entriesInMonth, groupByDay, summarize } from '@/core/aggregator';
 import { parseMonthKey } from '@/core/monthKey';
 import { finalPay, roundedHours } from '@/core/workEntry';
-import { formatHours, formatMoney, formatMonthYear, formatShortDay } from '@/format/intl';
+import { formatHours, formatMoney, formatMonthYear, formatShortDay, formatSurgeriesCount } from '@/format/intl';
 import { appStore } from '@/store/appStoreSingleton';
 import { useModalParam } from '@/hooks/useModalParam';
 import { EntryFormModal } from '@/components/entries/EntryFormModal';
-import { ChevronLeftIcon } from '@/components/ui/icons';
+import { ChevronLeftIcon, SurgeryIcon } from '@/components/ui/icons';
 import type { WorkEntry } from '@/core/types';
 
 /** Порт MonthDetailView: карточка итога месяца + записи по дням (новые сверху). */
@@ -81,6 +81,12 @@ function MonthEntryRow({ entry }: { entry: WorkEntry }): React.JSX.Element {
   return (
     <div className="flex items-center gap-2 py-2.5">
       <span className="text-[15px]">{formatHours(roundedHours(entry))}</span>
+      {entry.surgeries.length > 0 ? (
+        <span className="flex items-center gap-1 text-xs text-gray-400">
+          <SurgeryIcon size={12} />
+          {entry.surgeries.length === 1 ? entry.surgeries[0]!.name || 'операция' : formatSurgeriesCount(entry.surgeries.length)}
+        </span>
+      ) : null}
       {entry.note ? <span className="min-w-0 flex-1 truncate text-xs text-gray-400">· {entry.note}</span> : <span className="flex-1" />}
       <span className="text-sm font-semibold">{formatMoney(finalPay(entry))}</span>
     </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computedPay, finalPay, isPayOverridden, rawMinutes, roundedHours } from '../workEntry';
+import { computedPay, finalPay, isPayOverridden, rawMinutes, roundedHours, surgeriesTotal } from '../workEntry';
 import type { WorkEntry } from '../types';
 
 function makeEntry(patch: Partial<WorkEntry> = {}): WorkEntry {
@@ -11,6 +11,7 @@ function makeEntry(patch: Partial<WorkEntry> = {}): WorkEntry {
     rate: 400,
     overridePay: null,
     note: null,
+    surgeries: [],
     ...patch
   };
 }
@@ -49,5 +50,34 @@ describe('WorkEntry', () => {
     const e = makeEntry({ inputMode: { kind: 'timeRange', start, end: start - 3_600_000 } });
     expect(rawMinutes(e)).toBe(0);
     expect(roundedHours(e)).toBe(0);
+  });
+
+  it('операции прибавляются к авторасчёту', () => {
+    const e = makeEntry({
+      inputMode: { kind: 'duration', hours: 6, minutes: 40 },
+      surgeries: [
+        { name: 'имплантат', price: 1000 },
+        { name: 'чистка', price: 1500 }
+      ]
+    });
+    expect(surgeriesTotal(e.surgeries)).toBe(2500);
+    // 6,5 ч × 400 + 2500 = 5100
+    expect(computedPay(e)).toBeCloseTo(5100, 4);
+    expect(finalPay(e)).toBeCloseTo(5100, 4);
+  });
+
+  it('ручная сумма перекрывает и часы, и операции', () => {
+    const e = makeEntry({
+      surgeries: [{ name: 'имплантат', price: 1000 }],
+      overridePay: 10000
+    });
+    expect(finalPay(e)).toBe(10000);
+    // авторасчёт остаётся виден: 4 ч × 400 + 1000
+    expect(computedPay(e)).toBeCloseTo(2600, 4);
+  });
+
+  it('пустые операции не меняют сумму', () => {
+    expect(surgeriesTotal([])).toBe(0);
+    expect(computedPay(makeEntry())).toBeCloseTo(1600, 4);
   });
 });

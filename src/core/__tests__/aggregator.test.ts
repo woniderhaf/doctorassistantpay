@@ -18,7 +18,8 @@ function entry(date: number, hours: number, pay: number, id = ''): WorkEntry {
     inputMode: { kind: 'duration', hours, minutes: 0 },
     rate: hours ? pay / hours : 0,
     overridePay: pay, // фиксируем сумму: hours*rate == pay
-    note: null
+    note: null,
+    surgeries: []
   };
 }
 

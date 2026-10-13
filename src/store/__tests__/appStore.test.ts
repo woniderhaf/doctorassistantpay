@@ -13,7 +13,8 @@ function makeEntry(id: string, dayNum: number, hours = 8): WorkEntry {
     inputMode: { kind: 'duration', hours, minutes: 0 },
     rate: 400,
     overridePay: null,
-    note: null
+    note: null,
+    surgeries: []
   };
 }
 
@@ -28,7 +29,8 @@ function makeShift(id: string, dayNum: number): PlannedShift {
     reminderOffsetMinutes: 60,
     status: 'planned',
     actualStartTime: null,
-    note: null
+    note: null,
+    surgeries: []
   };
 }
 
@@ -74,6 +76,22 @@ describe.each(repositories)('appStore on %s', (_name, makeRepo) => {
     expect(store.getState().entries[0]!.note).toBe('правка');
     store.getState().deleteEntry('e1');
     expect(store.getState().entries).toHaveLength(0);
+  });
+
+  it('closeShift переносит операции смены в запись', async () => {
+    const store = createAppStore(repo);
+    await store.getState().init();
+    store.getState().addPlannedShift({
+      ...makeShift('s1', 6),
+      surgeries: [{ name: 'имплантат', price: 1000 }]
+    });
+    const original = store.getState().plannedShifts[0]!.surgeries;
+
+    const entry = store.getState().closeShift('s1', new Date(2026, 9, 6, 17, 0).getTime());
+    expect(entry?.surgeries).toEqual([{ name: 'имплантат', price: 1000 }]);
+    // копия, а не та же ссылка — правка записи не должна задевать исходник
+    expect(entry?.surgeries).not.toBe(original);
+    expect(store.getState().entries[0]!.surgeries).toEqual([{ name: 'имплантат', price: 1000 }]);
   });
 
   it('activate → closeShift: запись создана (9:00→17:00 = 8ч · 3200₽), смена удалена', async () => {

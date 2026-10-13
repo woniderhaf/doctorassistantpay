@@ -11,7 +11,8 @@ const entry: WorkEntry = {
   inputMode: { kind: 'timeRange', start: day + 9 * 3_600_000, end: day + 17 * 3_600_000 },
   rate: 500,
   overridePay: null,
-  note: 'заметка'
+  note: 'заметка',
+  surgeries: [{ name: 'имплантат', price: 1000 }]
 };
 
 const shift: PlannedShift = {
@@ -24,10 +25,15 @@ const shift: PlannedShift = {
   reminderOffsetMinutes: 30,
   status: 'planned',
   actualStartTime: null,
-  note: null
+  note: null,
+  surgeries: []
 };
 
-const data = { entries: [entry], plannedShifts: [shift], settings: { hourlyRate: 500, dailyReminderEnabled: true } };
+const data = {
+  entries: [entry],
+  plannedShifts: [shift],
+  settings: { hourlyRate: 500, surgeryPrice: 1000, dailyReminderEnabled: true }
+};
 
 describe('бэкап', () => {
   it('round-trip сохраняет всё дословно', () => {
@@ -37,6 +43,7 @@ describe('бэкап', () => {
       expect(parsed.data.entries).toEqual([entry]);
       expect(parsed.data.plannedShifts).toEqual([shift]);
       expect(parsed.data.settings.hourlyRate).toBe(500);
+      expect(parsed.data.entries[0]!.surgeries).toEqual([{ name: 'имплантат', price: 1000 }]);
     }
   });
 

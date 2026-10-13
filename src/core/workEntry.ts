@@ -1,5 +1,10 @@
 import { roundedHoursFromMinutes, roundedHoursFromRange } from './timeRounding';
-import type { WorkEntry } from './types';
+import type { Surgery, WorkEntry } from './types';
+
+/** Сумма операций смены. */
+export function surgeriesTotal(surgeries: Surgery[]): number {
+  return surgeries.reduce((sum, s) => sum + s.price, 0);
+}
 
 /** Продолжительность смены в минутах без округления. */
 export function rawMinutes(entry: WorkEntry): number {
@@ -18,9 +23,9 @@ export function roundedHours(entry: WorkEntry): number {
     : roundedHoursFromMinutes(rawMinutes(entry));
 }
 
-/** Автоматическая сумма (без ручной правки). */
+/** Автоматическая сумма (без ручной правки): часы × ставка + операции. */
 export function computedPay(entry: WorkEntry): number {
-  return roundedHours(entry) * entry.rate;
+  return roundedHours(entry) * entry.rate + surgeriesTotal(entry.surgeries);
 }
 
 /** Итог к выплате: ручная правка либо авторасчёт. */

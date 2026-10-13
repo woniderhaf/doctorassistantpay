@@ -10,6 +10,12 @@ export type InputMode =
   | { kind: 'timeRange'; start: number; end: number }
   | { kind: 'duration'; hours: number; minutes: number };
 
+/** Операция, выполненная за смену: название + цена (₽). */
+export interface Surgery {
+  name: string;
+  price: number;
+}
+
 /** Одна запись о работе за конкретный день. */
 export interface WorkEntry {
   id: string;
@@ -18,9 +24,11 @@ export interface WorkEntry {
   inputMode: InputMode;
   /** Ставка в час (₽/час) на момент создания/редактирования. */
   rate: number;
-  /** Ручная правка итоговой суммы — приоритетнее авторасчёта. */
+  /** Ручная правка итоговой суммы — приоритетнее авторасчёта (часы + операции). */
   overridePay: number | null;
   note: string | null;
+  /** Операции за смену — добавляются к оплате поверх «часы × ставка». */
+  surgeries: Surgery[];
 }
 
 /**
@@ -41,11 +49,15 @@ export interface PlannedShift {
   status: PlannedShiftStatus;
   actualStartTime: number | null;
   note: string | null;
+  /** Операции; при закрытии смены переносятся в запись. */
+  surgeries: Surgery[];
 }
 
 export interface AppSettings {
   /** Ставка по умолчанию, ₽/час (дефолт iOS — 400). */
   hourlyRate: number;
+  /** Цена операции по умолчанию, ₽ (дефолт — 1000); правится для каждой операции. */
+  surgeryPrice: number;
   /** Сохранено для round-trip с iOS; UI v1 не показывает. */
   dailyReminderEnabled: boolean;
 }

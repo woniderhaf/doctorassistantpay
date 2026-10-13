@@ -1,9 +1,9 @@
-import { roundedHours, finalPay, isPayOverridden } from '@/core/workEntry';
-import { formatHours, formatMoney, formatTime } from '@/format/intl';
+import { roundedHours, finalPay, isPayOverridden, surgeriesTotal } from '@/core/workEntry';
+import { formatHours, formatMoney, formatSurgeriesCount, formatTime } from '@/format/intl';
 import type { WorkEntry } from '@/core/types';
-import { PencilIcon } from '../ui/icons';
+import { PencilIcon, SurgeryIcon } from '../ui/icons';
 
-/** Порт EntryRow: «HH:mm–HH:mm» или «N ч»/«N ч M мин», часы + сумма, карандаш при ручной правке. */
+/** Порт EntryRow: «HH:mm–HH:mm» или «N ч»/«N ч M мин», операции, часы + сумма, карандаш при ручной правке. */
 export function EntryRow({ entry }: { entry: WorkEntry }): React.JSX.Element {
   const timeDescription =
     entry.inputMode.kind === 'timeRange'
@@ -12,10 +12,21 @@ export function EntryRow({ entry }: { entry: WorkEntry }): React.JSX.Element {
         ? `${entry.inputMode.hours} ч`
         : `${entry.inputMode.hours} ч ${entry.inputMode.minutes} мин`;
 
+  const surgeriesAmount = surgeriesTotal(entry.surgeries);
+
   return (
     <div className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px]">{timeDescription}</p>
+        {entry.surgeries.length > 0 ? (
+          <p className="flex items-center gap-1 truncate text-xs text-gray-400">
+            <SurgeryIcon size={12} />
+            {entry.surgeries.length === 1
+              ? entry.surgeries[0]!.name || 'операция'
+              : formatSurgeriesCount(entry.surgeries.length)}
+            {surgeriesAmount > 0 ? ` · +${formatMoney(surgeriesAmount)}` : ''}
+          </p>
+        ) : null}
         {entry.note ? <p className="truncate text-xs text-gray-400">{entry.note}</p> : null}
       </div>
       <div className="flex flex-col items-end gap-0.5">

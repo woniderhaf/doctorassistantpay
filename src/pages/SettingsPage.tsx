@@ -3,12 +3,14 @@ import { parseNumber } from '@/core/parseNumber';
 import { appStore } from '@/store/appStoreSingleton';
 import { DataSection } from '@/components/settings/DataSection';
 
-/** Порт SettingsView (без секций уведомлений — web v1): ставка + правила округления + данные. */
+/** Порт SettingsView (без секций уведомлений — web v1): ставка + цена операции + данные. */
 export function SettingsPage(): React.JSX.Element {
   const settings = appStore(s => s.settings);
   const setHourlyRate = appStore(s => s.setHourlyRate);
+  const setSurgeryPrice = appStore(s => s.setSurgeryPrice);
 
   const [rateText, setRateText] = useState(() => formatRate(settings.hourlyRate));
+  const [priceText, setPriceText] = useState(() => formatRate(settings.surgeryPrice));
 
   // как saveRate() в iOS: принимаем только положительное число, иначе молча оставляем старое
   const saveRate = () => {
@@ -18,6 +20,16 @@ export function SettingsPage(): React.JSX.Element {
       setRateText(formatRate(value));
     } else {
       setRateText(formatRate(settings.hourlyRate));
+    }
+  };
+
+  const saveSurgeryPrice = () => {
+    const value = parseNumber(priceText);
+    if (value != null && value > 0) {
+      setSurgeryPrice(value);
+      setPriceText(formatRate(value));
+    } else {
+      setPriceText(formatRate(settings.surgeryPrice));
     }
   };
 
@@ -44,6 +56,28 @@ export function SettingsPage(): React.JSX.Element {
         <p className="mt-2 text-xs text-gray-400">
           Эта ставка подставляется при создании новой записи. Для уже сохранённых смен ставка не меняется —
           её можно поправить отдельно при редактировании записи.
+        </p>
+      </section>
+
+      <section className="rounded-card bg-white p-4 shadow-sm">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-gray-400">Цена операции по умолчанию</h2>
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            inputMode="decimal"
+            value={priceText}
+            onChange={e => setPriceText(e.target.value)}
+            onBlur={saveSurgeryPrice}
+            onKeyDown={e => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+            }}
+            placeholder="Цена операции"
+            className="flex-1 rounded-lg border border-gray-200 px-3 py-2.5"
+          />
+          <span className="text-gray-500">₽</span>
+        </div>
+        <p className="mt-2 text-xs text-gray-400">
+          Подставляется при добавлении новой операции в смену — цену каждой операции можно поправить отдельно.
+          Сумма операций прибавляется к оплате смены (часы × ставка).
         </p>
       </section>
 

@@ -30,6 +30,7 @@ export interface AppState {
   cancelShift: (id: string) => void;
 
   setHourlyRate: (rate: number) => void;
+  setSurgeryPrice: (price: number) => void;
   /** Полная замена данных (после импорта). */
   replaceAll: (data: { entries: WorkEntry[]; plannedShifts: PlannedShift[]; settings: AppSettings }) => void;
 }
@@ -44,7 +45,7 @@ export function createAppStore(repository: DataRepository) {
       loaded: false,
       entries: [],
       plannedShifts: [],
-      settings: { hourlyRate: 400, dailyReminderEnabled: true },
+      settings: { hourlyRate: 400, surgeryPrice: 1000, dailyReminderEnabled: true },
 
       async init() {
         const data = await repository.loadAll();
@@ -111,6 +112,12 @@ export function createAppStore(repository: DataRepository) {
 
       setHourlyRate(rate) {
         const settings = { ...get().settings, hourlyRate: rate };
+        set({ settings });
+        persistSettings(settings);
+      },
+
+      setSurgeryPrice(price) {
+        const settings = { ...get().settings, surgeryPrice: price };
         set({ settings });
         persistSettings(settings);
       },

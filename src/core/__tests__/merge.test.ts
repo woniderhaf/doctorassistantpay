@@ -11,7 +11,8 @@ const e = (id: string, rate = 500): WorkEntry => ({
   inputMode: { kind: 'duration', hours: 8, minutes: 0 },
   rate,
   overridePay: null,
-  note: null
+  note: null,
+  surgeries: []
 });
 const s = (id: string, rate = 600): PlannedShift => ({
   id,
@@ -23,7 +24,8 @@ const s = (id: string, rate = 600): PlannedShift => ({
   reminderOffsetMinutes: 60,
   status: 'planned',
   actualStartTime: null,
-  note: null
+  note: null,
+  surgeries: []
 });
 
 describe('mergeById', () => {
@@ -123,11 +125,13 @@ describe('кросс-формат: файл iOS-приложения читае�
       inputMode: { kind: 'timeRange', start: day + 9 * 3_600_000, end: day + 17 * 3_600_000 },
       rate: 500,
       overridePay: 5000,
-      note: 'клиника №3'
+      note: 'клиника №3',
+      surgeries: []
     });
     expect(entries[1]!.inputMode).toEqual({ kind: 'duration', hours: 6, minutes: 40 });
     expect(entries[1]!.overridePay).toBeNull();
     expect(entries[1]!.note).toBeNull();
+    expect(entries[1]!.surgeries).toEqual([]);
 
     expect(plannedShifts[0]).toMatchObject({
       status: 'active',
@@ -135,7 +139,7 @@ describe('кросс-формат: файл iOS-приложения читае�
       reminderOffsetMinutes: 30
     });
 
-    expect(settings).toEqual({ hourlyRate: 550, dailyReminderEnabled: false });
+    expect(settings).toEqual({ hourlyRate: 550, surgeryPrice: 1000, dailyReminderEnabled: false });
   });
 
   it('импорт поверх текущих данных добавляет, а не затирает', () => {

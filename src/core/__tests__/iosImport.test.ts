@@ -176,7 +176,8 @@ describe('parseIosPlannedShifts', () => {
       reminderOffsetMinutes: 30,
       status: 'active',
       actualStartTime: actual,
-      note: 'сутки'
+      note: 'сутки',
+      surgeries: []
     });
   });
 
@@ -207,12 +208,12 @@ describe('parseIosSettings', () => {
   it('ставка и флаг напоминания', () => {
     const { settings, error } = parseIosSettings(JSON.stringify({ hourlyRate: 550, dailyReminderEnabled: false }));
     expect(error).toBeUndefined();
-    expect(settings).toEqual({ hourlyRate: 550, dailyReminderEnabled: false });
+    expect(settings).toEqual({ hourlyRate: 550, surgeryPrice: 1000, dailyReminderEnabled: false });
   });
 
   it('незаполненные поля → дефолты', () => {
     const { settings } = parseIosSettings(JSON.stringify({ hourlyRate: 550 }));
-    expect(settings).toEqual({ hourlyRate: 550, dailyReminderEnabled: true });
+    expect(settings).toEqual({ hourlyRate: 550, surgeryPrice: 1000, dailyReminderEnabled: true });
   });
 });
 

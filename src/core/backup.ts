@@ -1,6 +1,6 @@
 import { startOfDay } from './dateHelpers';
 import { mergeSettings } from './settings';
-import type { AppSettings, PlannedShift, WorkEntry } from './types';
+import type { AppSettings, PlannedShift, Surgery, WorkEntry } from './types';
 
 /**
  * Собственный формат бэкапа: один JSON со всеми данными. Даты — epoch-ms
@@ -107,8 +107,22 @@ function parseEntries(value: unknown): WorkEntry[] | null {
       inputMode,
       rate: typeof o['rate'] === 'number' ? o['rate'] : 0,
       overridePay: typeof o['overridePay'] === 'number' ? o['overridePay'] : null,
-      note: typeof o['note'] === 'string' ? o['note'] : null
+      note: typeof o['note'] === 'string' ? o['note'] : null,
+      surgeries: parseSurgeries(o['surgeries'])
     });
+  }
+  return items;
+}
+
+/** Операции: кривые записи пропускаем, а не отбраковываем всю смену. */
+function parseSurgeries(value: unknown): Surgery[] {
+  if (!Array.isArray(value)) return [];
+  const items: Surgery[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object') continue;
+    const o = raw as Record<string, unknown>;
+    if (typeof o['price'] !== 'number' || !Number.isFinite(o['price'])) continue;
+    items.push({ name: typeof o['name'] === 'string' ? o['name'] : '', price: o['price'] });
   }
   return items;
 }
@@ -138,7 +152,8 @@ function parseShifts(value: unknown): PlannedShift[] | null {
       reminderOffsetMinutes: typeof o['reminderOffsetMinutes'] === 'number' ? o['reminderOffsetMinutes'] : 60,
       status: o['status'] === 'active' ? 'active' : 'planned',
       actualStartTime: typeof o['actualStartTime'] === 'number' ? o['actualStartTime'] : null,
-      note: typeof o['note'] === 'string' ? o['note'] : null
+      note: typeof o['note'] === 'string' ? o['note'] : null,
+      surgeries: parseSurgeries(o['surgeries'])
     });
   }
   return items;

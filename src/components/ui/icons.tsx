@@ -131,3 +131,12 @@ export const ClockPlusIcon = (p: IconProps) => (
     <path d="M12 7v5l3 2" />
   </svg>
 );
+
+/** Скальпель — операции смены. */
+export const SurgeryIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M20 4L9.5 14.5" />
+    <path d="M9.5 14.5l-2.8.9.9-2.8" />
+    <path d="M7.6 12.6L4 16.2c-.8.8-.8 2 0 2.8.8.8 2 .8 2.8 0l3.6-3.6" />
+  </svg>
+);

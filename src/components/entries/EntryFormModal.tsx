@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { roundedHoursFromMinutes } from '@/core/timeRounding';
+import { surgeriesTotal } from '@/core/workEntry';
 import { parseNumber } from '@/core/parseNumber';
 import { addDays, combineDateTime, parseLocalDate, startOfDay, toDateInputValue } from '@/core/dateHelpers';
 import { formatHours, formatMoney } from '@/format/intl';
 import { appStore } from '@/store/appStoreSingleton';
-import type { WorkEntry } from '@/core/types';
+import type { Surgery, WorkEntry } from '@/core/types';
 import { Sheet } from '../ui/Sheet';
+import { SurgeriesEditor } from '../surgeries/SurgeriesEditor';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { TrashIcon } from '../ui/icons';
@@ -26,6 +28,7 @@ function formatRateValue(rate: number): string {
 /** Порт AddEditEntryView: форма создания/редактирования записи. */
 export function EntryFormModal({ presetDate, entry, onClose }: EntryFormModalProps): React.JSX.Element | null {
   const settingsRate = appStore(s => s.settings.hourlyRate);
+  const defaultSurgeryPrice = appStore(s => s.settings.surgeryPrice);
   const addEntry = appStore(s => s.addEntry);
   const updateEntry = appStore(s => s.updateEntry);
   const deleteEntry = appStore(s => s.deleteEntry);
@@ -58,6 +61,7 @@ export function EntryFormModal({ presetDate, entry, onClose }: EntryFormModalPro
     entry?.overridePay != null ? formatRateValue(entry.overridePay) : ''
   );
   const [note, setNote] = useState(() => entry?.note ?? '');
+  const [surgeries, setSurgeries] = useState<Surgery[]>(() => entry?.surgeries.map(s => ({ ...s })) ?? []);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const parsedStartTime = parseTimeInput(startTime);
@@ -81,7 +85,8 @@ export function EntryFormModal({ presetDate, entry, onClose }: EntryFormModalPro
   const roundedPreview = roundedHoursFromMinutes(previewRawMinutes);
   const parsedRate = parseNumber(rateText) ?? settingsRate; // фолбэк на настройку, как в iOS
   const parsedManualPay = useManualPay ? parseNumber(manualPayText) : null;
-  const computedPreview = roundedPreview * parsedRate;
+  const surgeriesPreview = surgeriesTotal(surgeries);
+  const computedPreview = roundedPreview * parsedRate + surgeriesPreview;
   const finalPreview = parsedManualPay ?? computedPreview;
 
   const isValid =
@@ -101,7 +106,8 @@ export function EntryFormModal({ presetDate, entry, onClose }: EntryFormModalPro
       inputMode,
       rate: parsedRate,
       overridePay: parsedManualPay,
-      note: note.trim() === '' ? null : note.trim()
+      note: note.trim() === '' ? null : note.trim(),
+      surgeries
     };
   };
 
@@ -221,6 +227,8 @@ export function EntryFormModal({ presetDate, entry, onClose }: EntryFormModalPro
             </div>
           </label>
 
+          <SurgeriesEditor surgeries={surgeries} defaultPrice={defaultSurgeryPrice} onChange={setSurgeries} />
+
           <div className="flex flex-col gap-3 rounded-xl bg-gray-50 p-3">
             <label className="flex items-center justify-between gap-3">
               <span className="text-[15px]">Изменить итоговую сумму вручную</span>
@@ -242,7 +250,9 @@ export function EntryFormModal({ presetDate, entry, onClose }: EntryFormModalPro
               <span>К выплате</span>
               <span>{formatMoney(finalPreview)}</span>
             </div>
-            <p className="text-xs text-gray-400">По умолчанию сумма считается автоматически (часы × ставка).</p>
+            <p className="text-xs text-gray-400">
+              По умолчанию: часы × ставка{surgeriesPreview > 0 ? ` + ${formatMoney(surgeriesPreview)} за операции` : ''}.
+            </p>
           </div>
 
           <label className="flex flex-col gap-1.5">

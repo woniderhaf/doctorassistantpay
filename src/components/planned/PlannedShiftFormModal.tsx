@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { addDays, combineDateTime, parseLocalDate, startOfDay, toDateInputValue } from '@/core/dateHelpers';
 import { parseNumber } from '@/core/parseNumber';
 import { roundedHoursFromRange } from '@/core/timeRounding';
+import { surgeriesTotal } from '@/core/workEntry';
 import { formatHours, formatMoney } from '@/format/intl';
 import { appStore } from '@/store/appStoreSingleton';
-import type { PlannedShift } from '@/core/types';
+import type { PlannedShift, Surgery } from '@/core/types';
 import { Sheet } from '../ui/Sheet';
+import { SurgeriesEditor } from '../surgeries/SurgeriesEditor';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface PlannedShiftFormModalProps {
@@ -20,6 +22,7 @@ interface PlannedShiftFormModalProps {
  */
 export function PlannedShiftFormModal({ presetDate, shift, onClose }: PlannedShiftFormModalProps): React.JSX.Element {
   const settingsRate = appStore(s => s.settings.hourlyRate);
+  const defaultSurgeryPrice = appStore(s => s.settings.surgeryPrice);
   const addPlannedShift = appStore(s => s.addPlannedShift);
   const updatePlannedShift = appStore(s => s.updatePlannedShift);
   const cancelShift = appStore(s => s.cancelShift);
@@ -33,6 +36,7 @@ export function PlannedShiftFormModal({ presetDate, shift, onClose }: PlannedShi
     shift ? formatRate(shift.rate) : formatRate(settingsRate)
   );
   const [note, setNote] = useState(() => shift?.note ?? '');
+  const [surgeries, setSurgeries] = useState<Surgery[]>(() => shift?.surgeries.map(s => ({ ...s })) ?? []);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const startTime = combineDateTime(date, parseHm(startHm));
@@ -41,7 +45,7 @@ export function PlannedShiftFormModal({ presetDate, shift, onClose }: PlannedShi
 
   const parsedRate = parseNumber(rateText) ?? settingsRate;
   const previewHours = roundedHoursFromRange(startTime, endTime);
-  const previewPay = previewHours * parsedRate;
+  const previewPay = previewHours * parsedRate + surgeriesTotal(surgeries);
   const isValid = parsedRate > 0;
 
   const save = () => {
@@ -53,7 +57,8 @@ export function PlannedShiftFormModal({ presetDate, shift, onClose }: PlannedShi
         startTime,
         endTime,
         rate: parsedRate,
-        note: note.trim() === '' ? null : note.trim()
+        note: note.trim() === '' ? null : note.trim(),
+        surgeries
       });
     } else {
       addPlannedShift({
@@ -66,7 +71,8 @@ export function PlannedShiftFormModal({ presetDate, shift, onClose }: PlannedShi
         reminderOffsetMinutes: 60,
         status: 'planned',
         actualStartTime: null,
-        note: note.trim() === '' ? null : note.trim()
+        note: note.trim() === '' ? null : note.trim(),
+        surgeries
       });
     }
     onClose();
@@ -132,6 +138,8 @@ export function PlannedShiftFormModal({ presetDate, shift, onClose }: PlannedShi
               <span className="text-gray-500">₽/ч</span>
             </div>
           </label>
+
+          <SurgeriesEditor surgeries={surgeries} defaultPrice={defaultSurgeryPrice} onChange={setSurgeries} />
 
           <div className="rounded-xl bg-gray-50 p-3">
             <div className="flex justify-between">

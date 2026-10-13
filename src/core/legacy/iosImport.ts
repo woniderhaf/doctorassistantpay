@@ -1,6 +1,6 @@
 import { startOfDay } from '../dateHelpers';
 import { mergeSettings } from '../settings';
-import type { AppSettings, InputMode, PlannedShift, WorkEntry } from '../types';
+import type { AppSettings, InputMode, PlannedShift, Surgery, WorkEntry } from '../types';
 
 /**
  * Импорт файлов iOS-приложения (work_entries.json / planned_shifts.json / app_settings.json).
@@ -131,10 +131,26 @@ export function parseIosEntries(source: string): { items: WorkEntry[]; warnings:
       inputMode,
       rate: rate ?? 0,
       overridePay: readNumber(raw['overridePay']),
-      note: readString(raw['note'])
+      note: readString(raw['note']),
+      // iOS-файлы операций не содержат — пустой список; пользователь добавит сам
+      surgeries: parseSurgeries(raw['surgeries'])
     });
   });
   return { items, warnings };
+}
+
+/** Операции: толерантно, кривые элементы пропускаем (не роняем ради них всю запись). */
+function parseSurgeries(value: Json | undefined): Surgery[] {
+  if (!Array.isArray(value)) return [];
+  const items: Surgery[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const name = readString(raw['name']) ?? '';
+    const price = readNumber(raw['price']);
+    if (price == null) continue;
+    items.push({ name, price });
+  }
+  return items;
 }
 
 export function parseIosPlannedShifts(source: string): { items: PlannedShift[]; warnings: string[]; error?: string } {
@@ -168,7 +184,8 @@ export function parseIosPlannedShifts(source: string): { items: PlannedShift[]; 
       reminderOffsetMinutes: readInt(raw['reminderOffsetMinutes'], 60),
       status: statusRaw === 'active' ? 'active' : 'planned',
       actualStartTime: swiftDateToMs(raw['actualStartTime'], `${where} actualStartTime`, warnings, false),
-      note: readString(raw['note'])
+      note: readString(raw['note']),
+      surgeries: parseSurgeries(raw['surgeries'])
     });
   });
   return { items, warnings };

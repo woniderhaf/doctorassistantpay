@@ -1,8 +1,9 @@
 import type { AppSettings } from './types';
 
-/** Значения по умолчанию — как AppSettings.swift (ставка 400). */
+/** Значения по умолчанию — как AppSettings.swift (ставка 400) + цена операции 1000. */
 export const DEFAULT_SETTINGS: AppSettings = {
   hourlyRate: 400,
+  surgeryPrice: 1000,
   dailyReminderEnabled: true
 };
 
@@ -16,6 +17,10 @@ export function mergeSettings(partial: Partial<AppSettings> | null | undefined):
       typeof partial?.hourlyRate === 'number' && isFinite(partial.hourlyRate)
         ? partial.hourlyRate
         : DEFAULT_SETTINGS.hourlyRate,
+    surgeryPrice:
+      typeof partial?.surgeryPrice === 'number' && isFinite(partial.surgeryPrice)
+        ? partial.surgeryPrice
+        : DEFAULT_SETTINGS.surgeryPrice,
     dailyReminderEnabled:
       typeof partial?.dailyReminderEnabled === 'boolean'
         ? partial.dailyReminderEnabled

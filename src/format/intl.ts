@@ -79,3 +79,15 @@ const ENTRY_FORMS: Record<string, string> = {
 export function formatEntriesCount(count: number): string {
   return `${count} ${ENTRY_FORMS[entryPlural.select(count)]}`;
 }
+
+const SURGERY_FORMS: Record<string, string> = {
+  one: 'операция',
+  few: 'операции',
+  many: 'операций',
+  other: 'операций'
+};
+
+/** Русская плюрализация операций: 1 операция, 2 операции, 5 операций. */
+export function formatSurgeriesCount(count: number): string {
+  return `${count} ${SURGERY_FORMS[entryPlural.select(count)]}`;
+}
