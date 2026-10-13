@@ -1,6 +1,7 @@
 import { forwardRef, useRef, useState } from 'react';
 import { backupFileName, parseBackup, serializeBackup } from '@/core/backup';
 import { importIosFiles } from '@/core/legacy/iosImport';
+import { describeMerge, mergeEntries, mergePlannedShifts } from '@/core/merge';
 import { appStore } from '@/store/appStoreSingleton';
 import type { AppSettings, PlannedShift, WorkEntry } from '@/core/types';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -8,7 +9,11 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 interface ImportedData {
   entries: WorkEntry[];
   plannedShifts: PlannedShift[];
+  /** Ставку берём из файла только когда пользователь сам этого захотел. */
   settings: AppSettings;
+  /** Как применить: добавить к текущим данным (по умолчанию) или заменить всё. */
+  mode: 'merge' | 'replace';
+  warnings: string[];
 }
 
 /** Перенос данных: свой бэкап (экспорт/импорт) и файлы iOS-приложения. */
@@ -46,7 +51,7 @@ export function DataSection(): React.JSX.Element {
       setMessage({ kind: 'error', text: parsed.error });
       return;
     }
-    setPending({ ...parsed.data, warnings: [] });
+    setPending({ ...parsed.data, mode: 'merge', warnings: [] });
   };
 
   const onIosFiles = async (): Promise<void> => {
@@ -68,23 +73,51 @@ export function DataSection(): React.JSX.Element {
       setMessage({ kind: 'error', text: result.error });
       return;
     }
-    setPending({ ...result, warnings: result.warnings });
+    setPending({ ...result, mode: 'merge', warnings: result.warnings });
   };
 
   const apply = () => {
     if (!pending) return;
-    appStore.getState().replaceAll({
-      entries: pending.entries,
-      plannedShifts: pending.plannedShifts,
-      settings: pending.settings
-    });
-    setMessage({
-      kind: 'ok',
-      text: `Импортировано: ${pending.entries.length} записей, ${pending.plannedShifts.length} плановых смен.`
-    });
+    const state = appStore.getState();
+
+    if (pending.mode === 'replace') {
+      state.replaceAll({
+        entries: pending.entries,
+        plannedShifts: pending.plannedShifts,
+        settings: pending.settings
+      });
+      setMessage({
+        kind: 'ok',
+        text: `Заменено: ${pending.entries.length} записей, ${pending.plannedShifts.length} плановых смен.`
+      });
+    } else {
+      const entries = mergeEntries(state.entries, pending.entries);
+      const plannedShifts = mergePlannedShifts(state.plannedShifts, pending.plannedShifts);
+      state.replaceAll({
+        entries: entries.items,
+        plannedShifts: plannedShifts.items,
+        settings: state.settings
+      });
+      const parts = [
+        describeMerge('записи', entries),
+        describeMerge('плановые смены', plannedShifts)
+      ];
+      if (pending.settings.hourlyRate !== state.settings.hourlyRate) {
+        parts.push(`ставка в файле ${pending.settings.hourlyRate} ₽/ч — не изменена`);
+      }
+      setMessage({ kind: 'ok', text: `Импорт завершён: ${parts.join('; ')}.` });
+    }
+
     setPending(null);
     clearPickers();
   };
+
+  const summaryOfPending = (pending: ImportedData): string =>
+    pending.mode === 'replace'
+      ? 'Текущие записи и плановые смены будут удалены и заменены содержимым файла. Это действие необратимо.'
+      : `Данные из файла будут добавлены к текущим (${pending.entries.length} записей, ${
+          pending.plannedShifts.length
+        } плановых смен). Совпадающие по id записи будут обновлены версией из файла. Ставка в настройках не изменится.`;
 
   return (
     <section className="rounded-card bg-white p-4 shadow-sm">
@@ -108,7 +141,7 @@ export function DataSection(): React.JSX.Element {
           onClick={() => backupInputRef.current?.click()}
           className="rounded-xl border border-gray-200 px-4 py-2.5 font-medium text-accent active:bg-gray-50"
         >
-          Восстановить из копии
+          Импортировать из файла
         </button>
         <input
           ref={backupInputRef}
@@ -145,17 +178,34 @@ export function DataSection(): React.JSX.Element {
 
       {pending ? (
         <ConfirmDialog
-          title="Заменить все данные?"
-          message={
-            pending.warnings.length > 0
-              ? `Текущие данные будут заменены импортированными. Предупреждения: ${pending.warnings.join(' ')}`
-              : 'Текущие записи и плановые смены будут заменены содержимым файла.'
-          }
-          confirmLabel="Заменить"
+          title="Импорт данных"
+          message={pending.warnings.length > 0 ? `${summaryOfPending(pending)} Предупреждения: ${pending.warnings.join(' ')}` : summaryOfPending(pending)}
+          confirmLabel={pending.mode === 'replace' ? 'Заменить' : 'Добавить'}
           cancelLabel="Отмена"
+          destructive={pending.mode === 'replace'}
           onConfirm={apply}
           onCancel={() => setPending(null)}
-        />
+        >
+          <div className="flex overflow-hidden rounded-xl border border-gray-200">
+            {(
+              [
+                { value: 'merge', label: 'Добавить к текущим' },
+                { value: 'replace', label: 'Заменить всё' }
+              ] as const
+            ).map(option => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setPending(p => (p ? { ...p, mode: option.value } : p))}
+                className={`flex-1 py-2.5 text-sm font-medium ${
+                  pending.mode === option.value ? 'bg-accent text-white' : 'bg-white text-gray-600 active:bg-gray-50'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </ConfirmDialog>
       ) : null}
     </section>
   );
