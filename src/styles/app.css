@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/* Дизайн-токены, перенесённые из iOS-версии (SwiftUI системные цвета) */
+@theme {
+  --color-accent: #007aff;
+  --color-success: #34c759;
+  --color-info: #007aff;
+  --color-warning: #ff9500;
+  --color-danger: #ff3b30;
+  --radius-card: 14px;
+  --font-sans:
+    -apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+  /* не даём «дёргаться» в standalone на iOS */
+  overscroll-behavior-y: none;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
