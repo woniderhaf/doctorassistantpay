@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import { mergeSettings } from '@/core/settings';
 import { startOfDay } from '@/core/dateHelpers';
-import type { AppSettings, PlannedShift, WorkEntry } from '@/core/types';
+import type { AppSettings, PlannedShift, Surgery, WorkEntry } from '@/core/types';
 
 const DB_NAME = 'shift-log';
 const DB_VERSION = 1;
@@ -36,8 +36,23 @@ export interface DataRepository {
   clear(): Promise<void>;
 }
 
+/**
+ * Миграция на лету: до фичи «операции» (commit afdc5f7) у сохранённых записей
+ * и смен не было поля surgeries. В старом IndexedDB оно отсутствует → читаем
+ * undefined, а UI (EntryRow / истории / итоги) зовёт surgeries.reduce и падает.
+ * Держим нормализацию полей-со-значением-по-умолчанию в одном месте — аналог
+ * decodeIfPresent в Swift и parseSurgeries в backup.ts/iosImport.ts.
+ */
+function normalizeSurgeries(list: Surgery[] | undefined): Surgery[] {
+  return Array.isArray(list) ? list : [];
+}
+
 function normalizeEntry(e: WorkEntry): WorkEntry {
-  return { ...e, date: startOfDay(e.date) };
+  return { ...e, date: startOfDay(e.date), surgeries: normalizeSurgeries(e.surgeries) };
+}
+
+function normalizeShift(s: PlannedShift): PlannedShift {
+  return { ...s, date: startOfDay(s.date), surgeries: normalizeSurgeries(s.surgeries) };
 }
 
 async function connect(): Promise<IDBPDatabase> {
@@ -78,7 +93,7 @@ export class IdbRepository implements DataRepository {
       ]);
       return {
         entries: (entriesBlob?.items ?? []).map(normalizeEntry),
-        plannedShifts: (shiftsBlob?.items ?? []).map(s => ({ ...s, date: startOfDay(s.date) })),
+        plannedShifts: (shiftsBlob?.items ?? []).map(normalizeShift),
         settings: mergeSettings(settingsBlob?.items ?? null)
       };
     });
@@ -94,7 +109,7 @@ export class IdbRepository implements DataRepository {
   async savePlannedShifts(shifts: PlannedShift[]): Promise<void> {
     return enqueue(async () => {
       const db = await this.db();
-      const items = shifts.map(s => ({ ...s, date: startOfDay(s.date) }));
+      const items = shifts.map(normalizeShift);
       await db.put(STORE, { schemaVersion: 1, items } satisfies Blob<PlannedShift[]>, KEY_SHIFTS);
     });
   }
@@ -123,7 +138,7 @@ export class MemoryRepository implements DataRepository {
   async loadAll(): Promise<LoadedData> {
     return {
       entries: this.entries.map(normalizeEntry),
-      plannedShifts: this.shifts,
+      plannedShifts: this.shifts.map(normalizeShift),
       settings: mergeSettings(this.settings)
     };
   }
